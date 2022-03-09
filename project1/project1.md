@@ -417,9 +417,9 @@ $ curl ec2-34-227-172-33.compute-1.amazonaws.com:80
 
 ## AWS Instance 
 
-![ec2 Instance](project1/images/ec2_instance.png)
-![security groups](project1/images/SGs.png)
+![ec2 Instance](images/ec2_instance.png)
+![security groups](images/SGs.png)
 
 ## Web Browser Website Display
 
-![php web page](project1/images/php%20index%20page.png)
+![php web page](images/php%20index%20page.png)
