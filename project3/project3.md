@@ -176,8 +176,13 @@ curl -s http://169.254.169.254/latest/meta-data/public-hostname
 - Test connectivity of nodejs app (aws: ubuntu server) with mongodb.com database:
 ![database connectivity test](images/mondb%20connect%20test.png)
 
+- Test Postman Put request:
+![postman put test](images/postman%20put%20test.png)
 - Test Postman Get request:
-![postman get test](images/postman_get.png)
+![postman get test](images/postman%20get%20test%201.png)
+- Test Postman Delete request:
+
+
 
 
 
