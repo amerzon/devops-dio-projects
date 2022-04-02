@@ -382,6 +382,191 @@ ubuntu@ip-172-31-88-191:~$
 - Attach to mysql-server server:
 ![server-attach-sg](images/server-attached-sg.png)
 
+5. You might need to configure MySQL server to allow connections from remote hosts.
+
+```bash
+ubuntu@ip-172-31-85-185:~$ sudo vi /etc/mysql/mysql.conf.d/mysqld.cnf
+ubuntu@ip-172-31-85-185:~$ grep bind /etc/mysql/mysql.conf.d/mysqld.cnf
+bind-address            = 0.0.0.0
+mysqlx-bind-address     = 0.0.0.0
+```
+
+6. From mysql client Linux Server connect remotely to mysql server Database Engine without using SSH. You must use the mysql utility to perform this action.
+
+- Connect to mysql locally (test to see its working, no point trying remotely if you don't know its obviously listing and you are able to connect)
+```bash
+ubuntu@ip-172-31-85-185:~$ mysqladmin --version
+mysqladmin  Ver 8.0.28-0ubuntu0.20.04.3 for Linux on x86_64 ((Ubuntu))
+ubuntu@ip-172-31-85-185:~$ mysql
+ERROR 1045 (28000): Access denied for user 'ubuntu'@'localhost' (using password: NO)
+ubuntu@ip-172-31-85-185:~$ sudo mysql
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 9
+Server version: 8.0.28-0ubuntu0.20.04.3 (Ubuntu)
+
+Copyright (c) 2000, 2022, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+4 rows in set (0.00 sec)
+
+mysql> quit()
+    -> ^DBye
+ubuntu@ip-172-31-85-185:~$ sudo mysqladmin -u root password "new_password";
+mysqladmin: [Warning] Using a password on the command line interface can be insecure.
+Warning: Since password will be sent to server in plain text, use ssl connection to ensure password safety.
+ubuntu@ip-172-31-85-185:~$ mysql -u root -p
+Enter password: 
+ERROR 1698 (28000): Access denied for user 'root'@'localhost'
+ubuntu@ip-172-31-85-185:~$ mysql -u root -p
+Enter password: 
+ERROR 1698 (28000): Access denied for user 'root'@'localhost'
+ubuntu@ip-172-31-85-185:~$ sudo mysql
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 13
+Server version: 8.0.28-0ubuntu0.20.04.3 (Ubuntu)
+
+Copyright (c) 2000, 2022, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'new_password';
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> ^DBye
+ubuntu@ip-172-31-85-185:~$ mysql -u root -p
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 14
+Server version: 8.0.28-0ubuntu0.20.04.3 (Ubuntu)
+
+Copyright (c) 2000, 2022, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+```
+
+- Test remotely from mysql-client server
+
+```bash
+ubuntu@ip-172-31-88-191:~$ telnet 172.31.85.185 3306
+Trying 172.31.85.185...
+Connected to 172.31.85.185.
+Escape character is '^]'.
+VHost 'ip-172-31-88-191.ec2.internal' is not allowed to connect to this MySQL serverConnection closed by foreign host.
+ubuntu@ip-172-31-88-191:~$ mysql -u root -p -h 172.31.85.185
+Enter password: 
+ERROR 1130 (HY000): Host 'ip-172-31-88-191.ec2.internal' is not allowed to connect to this MySQL server
+```
+- Troubleshooting 
+```bash
+ubuntu@ip-172-31-85-185:~$ sudo mysql -p
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 11
+Server version: 8.0.28-0ubuntu0.20.04.3 (Ubuntu)
+
+Copyright (c) 2000, 2022, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> select host from mysql.user where user = "root";
++-----------+
+| host      |
++-----------+
+| localhost |
++-----------+
+1 row in set (0.05 sec)
+
+mysql> use mysql;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+
+mysql> update user set host='%' where host='localhost';
+Query OK, 5 rows affected (0.01 sec)
+Rows matched: 5  Changed: 5  Warnings: 0
+
+ubuntu@ip-172-31-85-185:~$ sudo systemctl restart mysql.service 
+ubuntu@ip-172-31-85-185:~$ sudo mysql -p
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 8
+Server version: 8.0.28-0ubuntu0.20.04.3 (Ubuntu)
+
+Copyright (c) 2000, 2022, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> SHOW GRANTS FOR 'root'@'%';
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Grants for root@%                                                                                                                                                                                                                                                                                                                                                                                |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE, REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE TABLESPACE, CREATE ROLE, DROP ROLE ON *.* TO `root`@`%` WITH GRANT OPTION |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+```
+
+- Try connecting now
+
+```bash
+ubuntu@ip-172-31-88-191:~$ mysql -u root -p -h 172.31.85.185
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 9
+Server version: 8.0.28-0ubuntu0.20.04.3 (Ubuntu)
+
+Copyright (c) 2000, 2022, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+4 rows in set (0.01 sec)
+```
+
+Success - End of Project
 
 
 
